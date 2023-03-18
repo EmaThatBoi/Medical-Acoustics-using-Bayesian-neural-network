@@ -15,8 +15,9 @@ def create_data(dir_path,dir_label):
         for filename in os.listdir(path):       # ogni file nei path, viene aperto e preparato
                                                  # in una lista sarà data in input
             filepath = os.path.join(path,filename)
-            img = tf.io.read_file(filepath)
-            img = tf.io.decode_image(img, channels=1)
+            #img = tf.io.read_file(filepath)
+            #img = tf.io.decode_image(img, channels=1)
+            img = np.load(filepath)
             training_data.append((img,label))
 
     return training_data
