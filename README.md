@@ -1,6 +1,6 @@
 # Medical-Acoustics-using-Bayesian-neural-network
 
-### Database: Respiratory Sound Database (Kaggle)
+### Database: ICBHI 2017 Challenge: Respiratory Sound Database 
 il database presenta le registrazioni di 126 pazienti, 920 registrazioni in totale, ci sono 8 categorie di diagnosi possibili:
 
 <code>'Asthma', 'Bronchiectasis', 'Bronchiolitis', 'COPD', 'Healthy', 'LRTI', 'Pneumonia', 'URTI' </code>
