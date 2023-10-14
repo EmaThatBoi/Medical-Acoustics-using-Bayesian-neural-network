@@ -11,18 +11,21 @@ patient_diagnosis = np.array(patient_diagnosis)
 
 # Caricamento dei pazienti per train set e test set
 set_differences = pd.read_csv('ICBHI set/ICBHI_filename_differences.csv', sep='\t', names=('name', 'set'))
+set_differences = set_differences.sort_values(['name'])
 set_differences = np.array(set_differences)
 
 diagnosis = np.array(['Healthy', 'Diseased'])
 results = []
 index = -1
+conta = 0
+persi = []
 
 for file_name in os.listdir('ICBHI set/ICBHI_final_database'):
 
     if file_name.endswith('.txt'):
         index = index + 1
         print(f'Processing file: {file_name}')  # stampa il nome del file in lavorazione
-        breathing = pd.read_csv(('archive/audio_and_txt_files/'+file_name),sep='\t', names=('start','end','s','c'))
+        breathing = pd.read_csv(('ICBHI set/ICBHI_final_database/'+file_name),sep='\t', names=('start','end','s','c'))
         start = [breathing['start'][i] for i in range(len(breathing))]
         end = [breathing['end'][i] for i in range(len(breathing))]
 
@@ -57,6 +60,9 @@ for file_name in os.listdir('ICBHI set/ICBHI_final_database'):
                                 os.makedirs('official set/'+set_type+'/' +directory)
 
                         np.save(os.path.join('official set/',set_type ,directory, file_name[:-4] +'part_'+str(i) +'.npy'), signal_dB)
+                    else:
+                        conta = conta + 1
+                        persi.append((file_name[:-4],set_differences[index][0]))
 #######################################
 train_dir_path = 'official set/train'
 train_dir_label = os.listdir('official set/train')
