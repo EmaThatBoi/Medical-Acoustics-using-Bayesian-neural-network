@@ -29,19 +29,19 @@ const_bnn_prior_parameters = {
     "prior_mu": 0.0,
     "prior_sigma": 1.0,
     "posterior_mu_init": 0.0,
-    "posterior_rho_init": 0.0,
+    "posterior_rho_init": -3.0,
     "type": "Flipout",  # Flipout or Reparameterization
-    "moped_enable": False,  # True to initialize mu/sigma from the pretrained dnn weights
-    "moped_delta": 0.6,
+    "moped_enable": True,  # True to initialize mu/sigma from the pretrained dnn weights
+    "moped_delta": 0.2,
 }
 
 dnn_to_bnn(BCNN_model, const_bnn_prior_parameters)
 BCNN_model.to(device)
 criterion = BCELoss()
-lr=0.0000085
+lr=0.00025
 optimizer = torch.optim.Adam(BCNN_model.parameters(), lr=lr)
-num_epochs = 10
-num_monte_carlo = 10
+num_epochs = 100
+num_monte_carlo = 50
 
 
 train_losses = []
@@ -49,14 +49,6 @@ valid_losses = []
 train_accuracies = []
 valid_accuracies = []
 for epoch in range(num_epochs):
-
-    # print weights values distributions during training
-    if epoch == 0:
-        functions.plot_weights(epoch,BCNN_model)
-    if epoch == num_epochs/2:
-        functions.plot_weights(epoch, BCNN_model)
-    if epoch == num_epochs-1:
-        functions.plot_weights(epoch, BCNN_model)
 
     BCNN_model.train()  # Set the model to training mode
     train_loss = 0.0
@@ -87,7 +79,7 @@ for epoch in range(num_epochs):
     train_losses.append(train_loss)
     train_accuracies.append(train_acc)
 
-    print(f"Epoch {epoch + 1}/{num_epochs} \n Training Loss: {train_loss:.4f}, Training Accuracy: {train_acc:.4f}")
+    print(f"Epoch {epoch + 1}/{num_epochs}, Training Loss: {train_loss:.4f}, Training Accuracy: {train_acc:.4f}")
 
     BCNN_model.eval()
     with torch.no_grad():
@@ -135,27 +127,25 @@ for epoch in range(num_epochs):
 plt.plot(train_losses, label='Training Loss')
 plt.plot(valid_losses, label='Validation Loss')
 plt.legend()
-plt.suptitle("BCNN D1 Loss")
+plt.suptitle("BCNN D1 transfer learning Loss")
 plt.title(f"lr={lr}")
 plt.grid(True, linestyle='--', linewidth=0.5)
-plt.xlim(0)
+plt.xlim(0,100)
 plt.ylim(0, 3)
-plt.savefig('BCNN_D1/BCNN_D1_loss')
+plt.savefig('BCNN_D1_tl/BCNN_D1_tl_loss')
 plt.show()
 
 plt.plot(train_accuracies, label='Training Accuracy')
 plt.plot(valid_accuracies, label='Validation Accuracy')
 plt.legend()
-plt.suptitle("BCNN D1 Accuracy")
+plt.suptitle("BCNN D1 transfer learning Accuracy")
 plt.title(f"lr={lr}")
 plt.grid(True, linestyle='--', linewidth=0.5)
-plt.xlim(0)
+plt.xlim(0,100)
 plt.ylim(0,1)
-plt.savefig('BCNN_D1/BCNN_D1_accuracy')
+plt.savefig('BCNN_D1_tl/BCNN_D1_tl_accuracy')
 plt.show()
 
-################################################## Fase di test ###################################################
-"""
 BCNN_model.eval()
 test_loss = 0.0
 test_correct = 0
@@ -164,7 +154,7 @@ total_high_certainty_prediction = 0
 all_uncertainties = []
 barplot_data = []
 total_threshold = np.array([0.38,0.35,0.32, 0.3, 0.25])  # certainty = 1 - threshold
-epistemica_threshold = np.array([0.01,0.005,0.0025,0.001])
+epistemic_threshold = np.array([0.006,0.0035,0.0017,0.00075,0.00025])
 aleatoric_threshold = np.array([0.38,0.35,0.32, 0.3, 0.25])
 accuracy = []
 over_threshold_test_set = []
@@ -197,8 +187,8 @@ with torch.no_grad():
         model_uncertainty = mutual_information(output.data.cpu().numpy())  # incertezza epistemica
         aleatoric_uncertainty = predictive_uncertainty - model_uncertainty
         #########################
-        uncertainty = predictive_uncertainty  ########Seleziona incertezza
-        list_threshold = total_threshold
+        uncertainty = model_uncertainty  ########Seleziona incertezza
+        list_threshold = epistemic_threshold
 
         for threshold in list_threshold:
             all_uncertainties = []
@@ -223,7 +213,7 @@ with torch.no_grad():
 
             samples_percentage = correct_certain_samples / len(test_loader.dataset)
 
-            label = f'Campioni usati: {(100 * total_certain_prediction / len(test_loader.dataset)):.0f}%, ({total_certain_prediction})'
+            """label = f'Campioni usati: {(100 * total_certain_prediction / len(test_loader.dataset)):.0f}%, ({total_certain_prediction})'
             label_accuracy = f'Balanced Accuracy: {100 * balanced_accuracy:.0f}%'
             fig, ax = plt.subplots()
             ax.boxplot(all_uncertainties)
@@ -233,7 +223,7 @@ with torch.no_grad():
             plt.suptitle('Predictive Certainty')
             plt.ylabel('Certainty')
             plt.ylim(min(predictive_uncertainty)-0.05, max(predictive_uncertainty)+0.05)
-            plt.show()
+            plt.show()"""
 
     test_loss = test_loss / len(test_loader.dataset)
     test_acc = test_correct / len(test_loader.dataset)
@@ -244,7 +234,7 @@ ax.plot(list((1 - list_threshold) * 100), (100 * np.array(balanced_accuracies)),
 
 # Add annotations for number of samples
 for i, certainty in enumerate(list((1 - list_threshold) * 100)):
-    ax.annotate(f'{percentage_over_threshold[i]:.0f}%,{num_samples[i]}', (certainty + 0.3, 100 * balanced_accuracies[i] + 0.2))
+    ax.annotate(f'{percentage_over_threshold[i]:.0f}%,{num_samples[i]}', (certainty + 0.02, 100 * balanced_accuracies[i] + 0.02))
 
 # Set the y-axis ticks to be the discrete values you want
 ax.set_yticks([100 * value for value in balanced_accuracies])
@@ -253,6 +243,6 @@ ax.set_xticks([ value for value in list((1 - list_threshold) * 100)])
 plt.xlabel('Certezza %')
 plt.ylabel('Balanced Accuracy %')
 plt.grid(True, linestyle='--', linewidth=0.5)
-plt.title('Certezza predittiva totale')
+plt.title('Certezza epistemica')
 plt.show()
-"""
+

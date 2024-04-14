@@ -3,6 +3,7 @@ import pandas as pd
 import os
 import matplotlib.pyplot as plt
 from librosa import load,feature,power_to_db
+import functions
 
 patient_diagnosis = pd.read_csv('archive/patient_diagnosis.csv', names=('ID', 'Diagnosis'))
 patient_diagnosis = np.array(patient_diagnosis)
@@ -28,8 +29,8 @@ for file_name in os.listdir('archive/audio_and_txt_files/'):
         for id, diagnosi in patient_diagnosis:
             if str(file_name)[0:3] == str(id):                      # se è lo stesso paziente 101 == 101
                 #directory = str(nome_diagnosi[1])     x MULTI CLASS                         # assegna nome directory
-                #if not os.path.exists(os.path.join('diagnosi/', directory)):    # crea directory se non esiste
-                    #os.mkdir('diagnosi/'+directory)                             # crea solo directory poichè mkdir crea il path più a destra
+                #if not os.path.exists(os.path.join('unofficial set/', directory)):    # crea directory se non esiste
+                    #os.mkdir('unofficial set/'+directory)                             # crea solo directory poichè mkdir crea il path più a destra
 
                 path = os.path.join('archive/audio_and_txt_files/', str(file_name[0:-4] + '.wav'))
                 samples, sr = load(path, sr=44100)
@@ -46,11 +47,35 @@ for file_name in os.listdir('archive/audio_and_txt_files/'):
 
                     if diagnosi == 'Healthy':
                         directory = diagnosis[0]  # Healthy
-                        if not os.path.exists(os.path.join('diagnosi/', directory)):  # crea directory se non esiste
-                            os.mkdir('diagnosi/' + directory)
+                        if not os.path.exists(os.path.join('unofficial set/', directory)):  # crea directory se non esiste
+                            os.mkdir('unofficial set/' + directory)
                     else:
                         directory = diagnosis[1]  # Diseased
-                        if not os.path.exists(os.path.join('diagnosi/', directory)):  # crea directory se non esiste
-                            os.mkdir('diagnosi/' + directory)
-                    np.save(os.path.join('diagnosi/',set_type ,directory, file_name[:-4] +'part_'+str(i) +'.npy'), signal_dB)
+                        if not os.path.exists(os.path.join('unofficial set/', directory)):  # crea directory se non esiste
+                            os.mkdir('unofficial set/' + directory)
+                    np.save(os.path.join('unofficial set/' ,directory, file_name[:-4] +'part_'+str(i) +'.npy'), signal_dB)
 
+dir_path = 'unofficial set/'
+dir_label = os.listdir('unofficial set/')
+
+# estrae le matrici degli spettrogrammi dalle directory
+data = functions.create_data(dir_path, dir_label)
+
+#standardizza il dataset (media vicina a 0 e std a 1 su tutto il dataset )
+media = np.array([np.mean(arr) for arr,_ in data])
+std = np.array([np.std(arr,ddof=1) for arr, _ in data])
+
+for i in range(len(data)):
+    arr, label = data[i]
+    matrice_standard = ((arr - media[i]) / std[i])
+    data[i] = (matrice_standard, label)
+
+# crea la coppia - (spettrogramma, label corrispondente)
+
+x_data, y_data = functions.prepare_data(data, dir_label)
+
+x_data = np.array(x_data, dtype=np.float32)
+y_data = np.array(y_data, dtype=np.float32)
+
+np.save(file='unofficial set/dataset',arr=x_data)
+np.save(file='unofficial set/labels',arr=y_data)
